@@ -48,7 +48,7 @@ import com.sk89q.worldguard.bukkit.listener.PlayerModesListener;
 import com.sk89q.worldguard.bukkit.listener.PlayerMoveListener;
 import com.sk89q.worldguard.bukkit.listener.RegionFlagsListener;
 import com.sk89q.worldguard.bukkit.listener.RegionProtectionListener;
-import com.sk89q.worldguard.bukkit.listener.WorldGuardBlockListener;
+import com.sk89q.worldguard.bukkit.listener.WorldBlockListener;
 import com.sk89q.worldguard.bukkit.listener.WorldGuardCommandBookListener;
 import com.sk89q.worldguard.bukkit.listener.WorldGuardEntityListener;
 import com.sk89q.worldguard.bukkit.listener.WorldGuardHangingListener;
@@ -166,7 +166,7 @@ public class WorldGuardPlugin extends JavaPlugin {
         // Register events
         getServer().getPluginManager().registerEvents(sessionManager, this);
         (new WorldGuardPlayerListener(this)).registerEvents();
-        (new WorldGuardBlockListener(this)).registerEvents();
+        (new WorldBlockListener(this)).registerEvents();
         (new WorldGuardEntityListener(this)).registerEvents();
         (new WorldGuardWeatherListener(this)).registerEvents();
         (new WorldGuardVehicleListener(this)).registerEvents();

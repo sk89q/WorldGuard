@@ -73,6 +73,8 @@ public class BukkitWorldConfiguration extends YamlWorldConfiguration {
     public boolean usePaperEntityOrigin;
     /* Configuration data end */
 
+    public boolean needsBlockListener;
+
     /**
      * Construct the object.
      *
@@ -309,6 +311,8 @@ public class BukkitWorldConfiguration extends YamlWorldConfiguration {
                 blockCreatureSpawn.add(creature);
             }
         }
+
+        this.needsBlockListener = this.noPhysicsGravel || this.noPhysicsSand || this.allowPortalAnywhere || this.ropeLadders;
 
         boolean useBlacklistAsWhitelist = getBoolean("blacklist.use-as-whitelist", false);
 

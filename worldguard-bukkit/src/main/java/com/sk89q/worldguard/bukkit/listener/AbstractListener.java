@@ -25,6 +25,7 @@ import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.world.World;
 import com.sk89q.worldguard.LocalPlayer;
 import com.sk89q.worldguard.WorldGuard;
+import com.sk89q.worldguard.bukkit.BukkitConfigurationManager;
 import com.sk89q.worldguard.bukkit.BukkitWorldConfiguration;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.bukkit.cause.Cause;
@@ -81,8 +82,8 @@ class AbstractListener implements Listener {
      *
      * @return the configuration
      */
-    protected static ConfigurationManager getConfig() {
-        return WorldGuard.getInstance().getPlatform().getGlobalStateManager();
+    protected static BukkitConfigurationManager getConfig() {
+        return (BukkitConfigurationManager) WorldGuard.getInstance().getPlatform().getGlobalStateManager();
     }
 
     /**
@@ -91,7 +92,11 @@ class AbstractListener implements Listener {
      * @param world The world to get the configuration for.
      * @return The configuration for {@code world}
      */
-    protected static WorldConfiguration getWorldConfig(World world) {
+    protected static BukkitWorldConfiguration getWorldConfig(World world) {
+        return getConfig().get(world);
+    }
+
+    protected static BukkitWorldConfiguration getWorldConfig(org.bukkit.World world) {
         return getConfig().get(world);
     }
 
@@ -101,8 +106,18 @@ class AbstractListener implements Listener {
      * @param player The player to get the wold from
      * @return The {@link WorldConfiguration} for the player's world
      */
-    protected static WorldConfiguration getWorldConfig(LocalPlayer player) {
+    protected static BukkitWorldConfiguration getWorldConfig(LocalPlayer player) {
         return getWorldConfig((World) player.getExtent());
+    }
+
+    /**
+     * Get the world configuration given a Bukkit player.
+     *
+     * @param player - the player to get the world from
+     * @return The {@link WorldConfiguration} for the player's world
+     */
+    protected static BukkitWorldConfiguration getWorldConfig(Player player) {
+        return getWorldConfig(player.getWorld());
     }
 
     /**

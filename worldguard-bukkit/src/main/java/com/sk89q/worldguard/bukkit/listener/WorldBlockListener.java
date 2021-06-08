@@ -66,44 +66,15 @@ import org.bukkit.inventory.meta.ItemMeta;
  *
  * @author sk89q
  */
-public class WorldGuardBlockListener implements Listener {
-
-    private WorldGuardPlugin plugin;
+public class WorldBlockListener extends AbstractListener {
 
     /**
      * Construct the object.
      *
      * @param plugin The plugin instance
      */
-    public WorldGuardBlockListener(WorldGuardPlugin plugin) {
-        this.plugin = plugin;
-    }
-
-    /**
-     * Register events.
-     */
-    public void registerEvents() {
-        plugin.getServer().getPluginManager().registerEvents(this, plugin);
-    }
-
-    /**
-     * Get the world configuration given a world.
-     *
-     * @param world The world to get the configuration for.
-     * @return The configuration for {@code world}
-     */
-    private WorldConfiguration getWorldConfig(World world) {
-        return WorldGuard.getInstance().getPlatform().getGlobalStateManager().get(BukkitAdapter.adapt(world));
-    }
-
-    /**
-     * Get the world configuration given a player.
-     *
-     * @param player The player to get the wold from
-     * @return The {@link BukkitWorldConfiguration} for the player's world
-     */
-    private WorldConfiguration getWorldConfig(Player player) {
-        return getWorldConfig(player.getWorld());
+    public WorldBlockListener(WorldGuardPlugin plugin) {
+        super(plugin);
     }
 
     /*
@@ -246,7 +217,7 @@ public class WorldGuardBlockListener implements Listener {
 
         if (wcfg.blockLighter && (cause == IgniteCause.FLINT_AND_STEEL || cause == IgniteCause.FIREBALL)
                 && event.getPlayer() != null
-                && !plugin.hasPermission(event.getPlayer(), "worldguard.override.lighter")) {
+                && !getPlugin().hasPermission(event.getPlayer(), "worldguard.override.lighter")) {
             event.setCancelled(true);
             return;
         }
@@ -379,10 +350,14 @@ public class WorldGuardBlockListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onBlockPhysics(BlockPhysicsEvent event) {
         ConfigurationManager cfg = WorldGuard.getInstance().getPlatform().getGlobalStateManager();
-        WorldConfiguration wcfg = getWorldConfig(event.getBlock().getWorld());
 
         if (cfg.activityHaltToggle) {
             event.setCancelled(true);
+            return;
+        }
+
+        BukkitWorldConfiguration wcfg = getWorldConfig(event.getBlock().getWorld());
+        if (!wcfg.needsBlockListener) {
             return;
         }
 
@@ -403,7 +378,7 @@ public class WorldGuardBlockListener implements Listener {
             return;
         }
 
-        if (wcfg.ropeLadders && event.getBlock().getType() == Material.LADDER) {
+        if (id == Material.LADDER && wcfg.ropeLadders) {
             if (event.getBlock().getRelative(0, 1, 0).getType() == Material.LADDER) {
                 event.setCancelled(true);
                 return;
