@@ -52,6 +52,7 @@ import com.sk89q.worldguard.config.ConfigurationManager;
 import com.sk89q.worldguard.config.WorldConfiguration;
 import com.sk89q.worldguard.internal.permission.RegionPermissionModel;
 import com.sk89q.worldguard.protection.ApplicableRegionSet;
+import com.sk89q.worldguard.protection.FlagValueCalculator;
 import com.sk89q.worldguard.protection.flags.Flag;
 import com.sk89q.worldguard.protection.flags.FlagContext;
 import com.sk89q.worldguard.protection.flags.Flags;
@@ -1095,21 +1096,21 @@ public final class RegionCommands extends RegionCommandsBase {
 
         // -s for spawn location
         if (args.hasFlag('s')) {
-            teleportLocation = existing.getFlag(Flags.SPAWN_LOC);
+            teleportLocation = FlagValueCalculator.getEffectiveFlag(existing, Flags.SPAWN_LOC, player);
             
             if (teleportLocation == null) {
                 throw new CommandException(
                         "The region has no spawn point associated.");
             }
         } else {
-            teleportLocation = existing.getFlag(Flags.TELE_LOC);
+            teleportLocation = FlagValueCalculator.getEffectiveFlag(existing, Flags.TELE_LOC, player);
             
             if (teleportLocation == null) {
                 throw new CommandException("The region has no teleport point associated.");
             }
         }
 
-        String message = existing.getFlag(Flags.TELE_MESSAGE);
+        String message = FlagValueCalculator.getEffectiveFlag(existing, Flags.TELE_MESSAGE, player);
 
         // If the flag isn't set, use the default message
         // If message.isEmpty(), no message is sent by LocalPlayer#teleport(...)

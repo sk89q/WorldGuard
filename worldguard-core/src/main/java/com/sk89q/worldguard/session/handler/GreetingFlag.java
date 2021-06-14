@@ -81,7 +81,7 @@ public class GreetingFlag extends Handler {
             // Due to flag priorities, we have to collect the lower
             // priority flag values separately
             for (ProtectedRegion region : toSet) {
-                String message = region.getFlag(flag);
+                String message = region.getFlag(flag); // parents? FlagValueCalculator.getEffectiveFlag(region, flag, player)?
                 if (message != null) {
                     stack.add(message);
                 }
