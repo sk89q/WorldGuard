@@ -22,6 +22,7 @@ package com.sk89q.worldguard.protection.association;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.sk89q.worldguard.domains.Association;
+import com.sk89q.worldguard.protection.FlagValueCalculator;
 import com.sk89q.worldguard.protection.flags.Flags;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 
@@ -69,7 +70,8 @@ public abstract class AbstractRegionOverlapAssociation implements RegionAssociab
         }
 
         for (ProtectedRegion region : source) {
-            Set<String> regionDomains = region.getFlag(Flags.NONPLAYER_PROTECTION_DOMAINS);
+            // Potential endless recurrence? No, because there is no region group flag.
+            Set<String> regionDomains = FlagValueCalculator.getEffectiveFlag(region, Flags.NONPLAYER_PROTECTION_DOMAINS, this);
 
             if (regionDomains == null || regionDomains.isEmpty()) {
                 continue;
@@ -110,7 +112,8 @@ public abstract class AbstractRegionOverlapAssociation implements RegionAssociab
                 source = this.source;
             }
 
-            if (checkNonplayerProtectionDomains(source, region.getFlag(Flags.NONPLAYER_PROTECTION_DOMAINS))) {
+            // Potential endless recurrence? No, because there is no region group flag.
+            if (checkNonplayerProtectionDomains(source, FlagValueCalculator.getEffectiveFlag(region, Flags.NONPLAYER_PROTECTION_DOMAINS, this))) {
                 return Association.OWNER;
             }
         }
