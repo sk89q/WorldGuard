@@ -68,6 +68,10 @@ public final class Flags {
     public static final StateFlag DESTROY_VEHICLE = register(new StateFlag("vehicle-destroy", false));
     public static final StateFlag LIGHTER = register(new StateFlag("lighter", false));
     public static final StateFlag RIDE = register(new StateFlag("ride", false));
+    public static final StateFlag MOUNT_ANIMALS = register(new StateFlag("mount-animals", false));
+    public static final StateFlag MOUNT_VEHICLES = register(new StateFlag("mount-vehicles", false));
+    public static final StateFlag DISMOUNT_ANIMALS = register(new StateFlag("dismount-animals", false));
+    public static final StateFlag DISMOUNT_VEHICLES = register(new StateFlag("dismount-vehicles", false));
     public static final StateFlag POTION_SPLASH = register(new StateFlag("potion-splash", false));
     public static final StateFlag ITEM_FRAME_ROTATE = register(new StateFlag("item-frame-rotation", false));
     public static final StateFlag TRAMPLE_BLOCKS = register(new StateFlag("block-trampling", false));

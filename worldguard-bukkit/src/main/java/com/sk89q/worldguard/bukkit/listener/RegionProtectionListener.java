@@ -46,6 +46,7 @@ import com.sk89q.worldguard.protection.flags.Flags;
 import com.sk89q.worldguard.protection.flags.StateFlag;
 import com.sk89q.worldguard.protection.flags.StateFlag.State;
 import com.sk89q.worldguard.protection.regions.RegionQuery;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -425,7 +426,15 @@ public class RegionProtectionListener extends AbstractListener {
             }
         /* Ridden on use */
         } else if (Entities.isRiddenOnUse(entity)) {
-            canUse = query.testBuild(BukkitAdapter.adapt(target), associable, combine(event, Flags.RIDE, Flags.INTERACT));
+            StateFlag flagToCheck;
+            if (entity instanceof Tameable){
+                flagToCheck = Flags.MOUNT_ANIMALS;
+            }else {
+                flagToCheck = Flags.MOUNT_VEHICLES;
+            }
+            // backward compatibility – if Flag.RIDE is allowed, just allow
+            canUse = query.testBuild(BukkitAdapter.adapt(target), associable, combine(event, Flags.RIDE, Flags.INTERACT))
+                || query.testBuild(BukkitAdapter.adapt(target), associable, combine(event, flagToCheck));
             what = "ride that";
 
         /* Everything else */
@@ -522,13 +531,23 @@ public class RegionProtectionListener extends AbstractListener {
         if (!isRegionSupportEnabled(BukkitAdapter.adapt(vehicle.getWorld()))) return; // Region support disabled
         Entity exited = event.getExited();
 
-        if (vehicle instanceof Tameable && exited instanceof Player) {
+        if(exited instanceof Player){
             Player player = (Player) exited;
             LocalPlayer localPlayer = WorldGuardPlugin.inst().wrapPlayer(player);
+            StateFlag flagToCheck;
+            if (vehicle instanceof Tameable){
+                flagToCheck = Flags.DISMOUNT_ANIMALS;
+            } else {
+                flagToCheck = Flags.DISMOUNT_VEHICLES;
+            }
             if (!isWhitelisted(Cause.create(player), vehicle.getWorld(), false)) {
                 RegionQuery query = WorldGuard.getInstance().getPlatform().getRegionContainer().createQuery();
                 Location location = vehicle.getLocation();
-                if (!query.testBuild(BukkitAdapter.adapt(location), localPlayer, Flags.RIDE, Flags.INTERACT)) {
+                // don't let the INTERACT flag override dismounting
+                // the player might need to interact with world objects while staying mounted (buttons, doors etc)
+                // for backward compatibility, still allow the old Flags.RIDE | Flags.INTERACT
+                if (!query.testBuild(BukkitAdapter.adapt(location), localPlayer, flagToCheck)
+                    && !query.testBuild(BukkitAdapter.adapt(location), localPlayer, Flags.RIDE, Flags.INTERACT)) {
                     long now = System.currentTimeMillis();
                     Long lastTime = WGMetadata.getIfPresent(player, DISEMBARK_MESSAGE_KEY, Long.class);
                     if (lastTime == null || now - lastTime >= LAST_MESSAGE_DELAY) {
