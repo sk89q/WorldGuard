@@ -24,10 +24,12 @@ import com.sk89q.worldedit.util.formatting.text.TextComponent;
 import com.sk89q.worldedit.util.formatting.text.format.TextColor;
 import com.sk89q.worldedit.util.formatting.text.format.TextDecoration;
 import com.sk89q.worldedit.util.formatting.text.serializer.legacy.LegacyComponentSerializer;
+import com.sk89q.worldedit.world.block.BlockType;
 import com.sk89q.worldedit.world.entity.EntityType;
 import com.sk89q.worldedit.world.gamemode.GameMode;
 import com.sk89q.worldedit.world.weather.WeatherType;
 import com.sk89q.worldguard.WorldGuard;
+import com.sk89q.worldguard.protection.flags.StateFlag.State;
 import com.sk89q.worldguard.protection.flags.registry.FlagConflictException;
 import com.sk89q.worldguard.protection.flags.registry.FlagRegistry;
 
@@ -56,6 +58,8 @@ public final class Flags {
     // are still checked for DENY), so they are false by default
     public static final StateFlag BLOCK_BREAK = register(new StateFlag("block-break", false));
     public static final StateFlag BLOCK_PLACE = register(new StateFlag("block-place", false));
+    public static final MapFlag<BlockType, State> BREAK_BLOCKS = register(new MapFlag<>("break-blocks", new RegistryFlag<>(null, BlockType.REGISTRY), new StateFlag(null, false)));
+    public static final MapFlag<BlockType, State> PLACE_BLOCKS = register(new MapFlag<>("place-blocks", new RegistryFlag<>(null, BlockType.REGISTRY), new StateFlag(null, false)));
     public static final StateFlag USE = register(new StateFlag("use", false));
     public static final StateFlag INTERACT = register(new StateFlag("interact", false));
     public static final StateFlag DAMAGE_ANIMALS = register(new StateFlag("damage-animals", false));

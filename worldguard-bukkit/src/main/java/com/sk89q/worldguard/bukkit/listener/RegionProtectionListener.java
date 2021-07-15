@@ -21,6 +21,7 @@ package com.sk89q.worldguard.bukkit.listener;
 
 import com.google.common.base.Predicate;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
+import com.sk89q.worldedit.world.block.BlockType;
 import com.sk89q.worldguard.LocalPlayer;
 import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
@@ -43,6 +44,7 @@ import com.sk89q.worldguard.commands.CommandUtils;
 import com.sk89q.worldguard.config.WorldConfiguration;
 import com.sk89q.worldguard.protection.association.RegionAssociable;
 import com.sk89q.worldguard.protection.flags.Flags;
+import com.sk89q.worldguard.protection.flags.MapFlag;
 import com.sk89q.worldguard.protection.flags.StateFlag;
 import com.sk89q.worldguard.protection.flags.StateFlag.State;
 import com.sk89q.worldguard.protection.regions.RegionQuery;
@@ -150,6 +152,16 @@ public class RegionProtectionListener extends AbstractListener {
         }
     }
 
+    private boolean testBuildType(RegionQuery query, Location target, RegionAssociable associable, MapFlag<BlockType, State> mapFlag, Material type, StateFlag fallback, StateFlag... flag) {
+        BlockType blockType;
+
+        if (mapFlag == null || type == null || (blockType = BukkitAdapter.asBlockType(type)) == null) {
+            return query.testBuild(BukkitAdapter.adapt(target), associable, flag);
+        }
+
+        return query.testBuild(BukkitAdapter.adapt(target), associable, mapFlag, blockType, fallback, flag);
+    }
+
     @EventHandler(ignoreCancelled = true)
     public void onPlaceBlock(final PlaceBlockEvent event) {
         if (event.getResult() == Result.ALLOW) return; // Don't care about events that have been pre-allowed
@@ -181,16 +193,16 @@ public class RegionProtectionListener extends AbstractListener {
                 flags.add(Flags.LIGHTER);
                 if (fire) flags.add(Flags.FIRE_SPREAD);
                 if (lava) flags.add(Flags.LAVA_FIRE);
-                canPlace = query.testBuild(BukkitAdapter.adapt(target), associable, combine(event, flags.toArray(new StateFlag[flags.size()])));
+                canPlace = testBuildType(query, target, associable, Flags.PLACE_BLOCKS, type, null, combine(event, flags.toArray(new StateFlag[flags.size()])));
                 what = "place fire";
 
             } else if (type == Material.FROSTED_ICE) {
                 event.setSilent(true); // gets spammy
-                canPlace = query.testBuild(BukkitAdapter.adapt(target), associable, combine(event, Flags.BLOCK_PLACE, Flags.FROSTED_ICE_FORM));
+                canPlace = testBuildType(query, target, associable, Flags.PLACE_BLOCKS, type, null, combine(event, Flags.BLOCK_PLACE, Flags.FROSTED_ICE_FORM));
                 what = "use frostwalker"; // hidden anyway
             /* Everything else */
             } else {
-                canPlace = query.testBuild(BukkitAdapter.adapt(target), associable, combine(event, Flags.BLOCK_PLACE));
+                canPlace = testBuildType(query, target, associable, Flags.PLACE_BLOCKS, type, null, combine(event, Flags.BLOCK_PLACE));
                 what = "place that block";
             }
 
@@ -209,6 +221,7 @@ public class RegionProtectionListener extends AbstractListener {
         if (!isRegionSupportEnabled(BukkitAdapter.adapt(event.getWorld()))) return; // Region support disabled
         if (isWhitelisted(event.getCause(), event.getWorld(), false)) return; // Whitelisted cause
 
+        final Material type = event.getEffectiveMaterial();
         final RegionQuery query = WorldGuard.getInstance().getPlatform().getRegionContainer().createQuery();
 
         if (!event.isCancelled()) {
@@ -220,12 +233,12 @@ public class RegionProtectionListener extends AbstractListener {
 
                 /* TNT */
                 if (event.getCause().find(EntityType.PRIMED_TNT, EntityType.MINECART_TNT) != null) {
-                    canBreak = query.testBuild(BukkitAdapter.adapt(target), associable, combine(event, Flags.BLOCK_BREAK, Flags.TNT));
+                    canBreak = testBuildType(query, target, associable, Flags.BREAK_BLOCKS, type, null, combine(event, Flags.BLOCK_BREAK, Flags.TNT));
                     what = "use dynamite";
 
                 /* Everything else */
                 } else {
-                    canBreak = query.testBuild(BukkitAdapter.adapt(target), associable, combine(event, Flags.BLOCK_BREAK));
+                    canBreak = testBuildType(query, target, associable, Flags.BREAK_BLOCKS, type, null, combine(event, Flags.BLOCK_BREAK));
                     what = "break that block";
                 }
 
