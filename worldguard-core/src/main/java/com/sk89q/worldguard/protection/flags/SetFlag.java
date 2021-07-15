@@ -20,12 +20,16 @@
 package com.sk89q.worldguard.protection.flags;
 
 import com.google.common.collect.Sets;
+import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.util.Objects.requireNonNull;
 
@@ -33,6 +37,9 @@ import static java.util.Objects.requireNonNull;
  * Stores a set of types.
  */
 public class SetFlag<T> extends Flag<Set<T>> {
+
+    private static final Pattern ANY_MODIFIER = Pattern.compile("^(add|sub|subtract|rem|remove) (.*)$");
+    private static final Pattern REMOVE_MODIFIERS = Pattern.compile("^(sub|subtract|rem|remove) (.*)$");
 
     private Flag<T> subFlag;
 
@@ -64,10 +71,32 @@ public class SetFlag<T> extends Flag<Set<T>> {
             return Sets.newHashSet();
         } else {
             Set<T> items = Sets.newHashSet();
+            boolean subtractive = false;
+
+            // If the input starts with particular keywords, attempt to load the existing values,
+            // and make this a modification, instead of an overwrite.
+            Matcher keywordMatcher = ANY_MODIFIER.matcher(input);
+            if (keywordMatcher.matches()) {
+                ProtectedRegion region = Objects.requireNonNull((ProtectedRegion) context.get("region"));
+
+                Set<T> existingValue = region.getFlag(this);
+                if (existingValue != null) {
+                    items.addAll(existingValue);
+                }
+
+                subtractive = REMOVE_MODIFIERS.matcher(input).matches();
+                input = keywordMatcher.group(2);
+            }
 
             for (String str : input.split(",")) {
                 FlagContext copy = context.copyWith(null, str, null);
-                items.add(subFlag.parseInput(copy));
+
+                T subFlagValue = subFlag.parseInput(copy);
+                if (subtractive) {
+                    items.remove(subFlagValue);
+                } else {
+                    items.add(subFlagValue);
+                }
             }
 
             return items;
