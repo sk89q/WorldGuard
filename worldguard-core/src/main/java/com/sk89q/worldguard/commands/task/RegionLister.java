@@ -46,6 +46,8 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 public class RegionLister implements Callable<Integer> {
 
@@ -55,6 +57,8 @@ public class RegionLister implements Callable<Integer> {
     private final RegionManager manager;
     private final String world;
     private OwnerMatcher ownerMatcher;
+    private String idFilter;
+    private Pattern regexPattern;
     private int page;
     private String playerName;
     private boolean nameOnly;
@@ -141,6 +145,14 @@ public class RegionLister implements Callable<Integer> {
         };
     }
 
+    public void filterIdByMatch(String idFilter) {
+        this.idFilter = idFilter;
+    }
+
+    public void filterIdByRegex(Pattern pattern) {
+        this.regexPattern = pattern;
+    }
+
     @Override
     public Integer call() throws Exception {
         Map<String, ProtectedRegion> regions = manager.getRegions();
@@ -154,7 +166,8 @@ public class RegionLister implements Callable<Integer> {
             }
             final ProtectedRegion region = rg.getValue();
             final RegionListEntry entry = new RegionListEntry(region);
-            if (entry.matches(ownerMatcher)) {
+
+            if (entry.matches(idFilter) && entry.matches(ownerMatcher)) {
                 entries.add(entry);
             }
         }
@@ -205,6 +218,14 @@ public class RegionLister implements Callable<Integer> {
             return matcher == null
                     || (isOwner = matcher.isContainedWithin(region.getOwners()))
                     || (isMember = matcher.isContainedWithin(region.getMembers()));
+        }
+
+        public boolean matches(String idMatcher) {
+            return idMatcher == null || region.getId().contains(idMatcher);
+        }
+
+        public boolean matches(Pattern pattern) {
+            return pattern == null || pattern.matcher(region.getId()).matches();
         }
 
         public ProtectedRegion getRegion() {
@@ -266,6 +287,12 @@ public class RegionLister implements Callable<Integer> {
                         .hoverEvent(HoverEvent.of(HoverEvent.Action.SHOW_TEXT, TextComponent.of("Click to teleport")))
                         .clickEvent(ClickEvent.of(ClickEvent.Action.RUN_COMMAND,
                                 "/rg tp -w \"" + world + "\" " + entry.region.getId()))));
+            } else if (perms != null && perms.mayTeleportToCenter(entry.getRegion()) && entry.getRegion().isPhysicalArea()) {
+                builder.append(TextComponent.space().append(TextComponent.of("[TP-Center]", TextColor.GRAY)
+                        .hoverEvent(HoverEvent.of(HoverEvent.Action.SHOW_TEXT,
+                                TextComponent.of("Click to teleport to the center")))
+                        .clickEvent(ClickEvent.of(ClickEvent.Action.RUN_COMMAND,
+                                "/rg tp -c -w \"" + world + "\" " + entry.region.getId()))));
             }
             return builder.build();
         }

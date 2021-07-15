@@ -30,6 +30,7 @@ import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.command.util.AsyncCommandBuilder;
 import com.sk89q.worldedit.extension.platform.Actor;
 import com.sk89q.worldedit.extension.platform.Capability;
+import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.util.Location;
 import com.sk89q.worldedit.util.formatting.component.ErrorFormat;
 import com.sk89q.worldedit.util.formatting.component.LabelFormat;
@@ -41,6 +42,7 @@ import com.sk89q.worldedit.util.formatting.text.event.HoverEvent;
 import com.sk89q.worldedit.util.formatting.text.format.TextColor;
 import com.sk89q.worldedit.util.formatting.text.format.TextDecoration;
 import com.sk89q.worldedit.world.World;
+import com.sk89q.worldedit.world.gamemode.GameModes;
 import com.sk89q.worldguard.LocalPlayer;
 import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.commands.task.RegionAdder;
@@ -72,6 +74,7 @@ import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion.CircularInheritanceException;
 import com.sk89q.worldguard.protection.regions.RegionContainer;
 import com.sk89q.worldguard.protection.util.DomainInputResolver.UserLocatorPolicy;
+import com.sk89q.worldguard.protection.util.WorldEditRegionConverter;
 import com.sk89q.worldguard.session.Session;
 import com.sk89q.worldguard.util.Enums;
 import com.sk89q.worldguard.util.logging.LoggerToChatHandler;
@@ -82,6 +85,8 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
 /**
@@ -434,15 +439,16 @@ public final class RegionCommands extends RegionCommandsBase {
      * @throws CommandException any error
      */
     @Command(aliases = {"list"},
-             usage = "[page]",
+             usage = "[-w world] [-p owner [-n]] [-i id-filter [-r]] [page]",
              desc = "Get a list of regions",
-             flags = "np:w:",
+             flags = "np:w:ri:",
              max = 1)
     public void list(CommandContext args, Actor sender) throws CommandException {
         warnAboutSaveFailures(sender);
 
         World world = checkWorld(args, sender, 'w'); // Get the world
         String ownedBy;
+        String idFilter;
 
         // Get page
         int page = args.getInteger(0, 1);
@@ -455,6 +461,13 @@ public final class RegionCommands extends RegionCommandsBase {
             ownedBy = args.getFlag('p');
         } else {
             ownedBy = null; // List all regions
+        }
+
+        // -i string is in region id
+        if (args.hasFlag('i')) {
+            idFilter = args.getFlag('i');
+        } else {
+            idFilter = null; // don't filter regions
         }
 
         // Check permissions
@@ -471,6 +484,22 @@ public final class RegionCommands extends RegionCommandsBase {
         task.setPage(page);
         if (ownedBy != null) {
             task.filterOwnedByName(ownedBy, args.hasFlag('n'));
+        }
+        if (idFilter != null) {
+            if (args.hasFlag('r')) {
+                if (!getPermissionModel(sender).mayUseRegex()) {
+                    throw new CommandPermissionsException();
+                }
+                Pattern pattern;
+                try {
+                    pattern = Pattern.compile(idFilter);
+                } catch (PatternSyntaxException e) {
+                    throw new CommandException("The recevied regex pattern is invalid. Please validate your pattern.");
+                }
+                task.filterIdByRegex(pattern);
+            } else {
+                task.filterIdByMatch(idFilter);
+            }
         }
 
         AsyncCommandBuilder.wrap(task, sender)
@@ -1075,8 +1104,8 @@ public final class RegionCommands extends RegionCommandsBase {
      * @throws CommandException any error
      */
     @Command(aliases = {"teleport", "tp"},
-             usage = "<id>",
-             flags = "sw:",
+             usage = "[-w world] [-c|s] <id>",
+             flags = "csw:",
              desc = "Teleports you to the location associated with the region.",
              min = 1, max = 1)
     public void teleport(CommandContext args, Actor sender) throws CommandException {
@@ -1100,6 +1129,23 @@ public final class RegionCommands extends RegionCommandsBase {
             if (teleportLocation == null) {
                 throw new CommandException(
                         "The region has no spawn point associated.");
+            }
+        } else if (args.hasFlag('c')) {
+            // Check permissions
+            if (!getPermissionModel(player).mayTeleportToCenter(existing)) {
+                throw new CommandPermissionsException();
+            }
+            Region region = WorldEditRegionConverter.convertToRegion(existing);
+            if (region == null || region.getCenter() == null) {
+                throw new CommandException("The region has no center point.");
+            }
+            if (player.getGameMode() == GameModes.SPECTATOR) {
+                teleportLocation = new Location(world, region.getCenter(), 0, 0);
+            } else {
+                // TODO: Add some method to create a safe teleport location.
+                // The method AbstractPlayerActor$findFreePoisition(Location loc) is no good way for this.
+                // It doesn't return the found location and it can't be checked if the location is inside the region.
+                throw new CommandException("Center teleport is only availible in Spectator gamemode.");
             }
         } else {
             teleportLocation = existing.getFlag(Flags.TELE_LOC);
