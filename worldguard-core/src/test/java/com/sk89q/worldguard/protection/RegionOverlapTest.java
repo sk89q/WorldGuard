@@ -212,7 +212,7 @@ public abstract class RegionOverlapTest {
         assertTrue(appl.testState(assoc, Flags.BUILD));
         // Inside fountain
         appl = manager.getApplicableRegions(inFountain);
-        assertFalse(appl.testState(assoc, Flags.BUILD));
+        assertTrue(appl.testState(assoc, Flags.BUILD));
     }
 
     @ParameterizedTest(name = "useMaxPriorityAssociation={0}")
